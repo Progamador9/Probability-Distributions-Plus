@@ -346,7 +346,7 @@ function renderPhotos(){
     const btn=document.createElement('button');btn.className='remove-btn-full';btn.textContent='Eliminar foto '+(i+1);btn.onclick=()=>removePhoto(i);
     row.appendChild(btn);block.appendChild(img);block.appendChild(row);container.appendChild(block);
   });
-  document.getElementById('add-photo-block').style.display=s.images.length>=20?'none':'block';
+  document.getElementById('add-photo-block').style.display=s.images.length>=12?'none':'block';
 }
 
 function handleFile(e){

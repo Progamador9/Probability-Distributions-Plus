@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Probability Distributions</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{--salmon:#E07060;--bg:#EBEBF0;--text:#3A3A3C;--divider:#E0E0E5;--subtext:#AAAAAE;--teal:#5CC8C0;--pink:#E8908A;}
+html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;background:var(--bg);}
+#app{width:100%;max-width:430px;height:100vh;margin:0 auto;position:relative;overflow:hidden;}
+
+.screen{position:absolute;top:0;left:0;width:100%;height:100%;background:var(--bg);display:flex;flex-direction:column;transition:transform 0.32s cubic-bezier(0.4,0,0.2,1);}
+#main-screen{transform:translateX(0);}
+#detail-screen{transform:translateX(100%);overflow:hidden;}
+#help-screen{transform:translateX(100%);}
+#app.detail-open #main-screen{transform:translateX(-40%);}
+#app.detail-open #detail-screen{transform:translateX(0);}
+#app.help-open #detail-screen{transform:translateX(-40%);}
+#app.help-open #help-screen{transform:translateX(0);}
+
+.app-title{font-family:Georgia,serif;font-style:italic;font-size:20px;font-weight:400;color:var(--salmon);text-align:center;padding:38px 0 24px;flex-shrink:0;background:radial-gradient(ellipse 80% 100% at 50% 0%,#dddde3 0%,#EBEBF0 70%);}
+#scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.dist-item{display:flex;align-items:center;justify-content:center;width:100%;background:none;border:none;border-top:1px solid var(--divider);padding:11px 24px;font-size:13px;color:var(--text);font-family:-apple-system,sans-serif;cursor:pointer;text-align:center;transition:background 0.1s;}
+.dist-item:last-of-type{border-bottom:1px solid var(--divider);}
+.dist-item:active{background:rgba(0,0,0,0.05);}
+.main-footer{flex-shrink:0;text-align:center;padding:14px 20px 22px;border-top:1px solid var(--divider);background:var(--bg);}
+.footer-link{color:var(--salmon);font-size:10px;text-decoration:none;display:block;margin-bottom:5px;}
+.footer-info{font-size:9px;color:var(--subtext);line-height:1.8;}
+
+/* DETAIL */
+.dist-subtitle{text-align:center;font-size:15px;color:var(--subtext);padding:10px 0 6px;flex-shrink:0;}
+.params-wrap{padding:0 20px 4px;flex-shrink:0;}
+.param-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.param-label{font-size:13px;color:var(--text);}
+.param-input{border:1px solid #ccc;border-radius:7px;background:white;padding:5px 8px;font-size:13px;color:var(--text);width:90px;outline:none;font-family:-apple-system,sans-serif;}
+
+.main-row{display:flex;align-items:center;margin-top:2px;}
+.x-label{font-size:13px;color:var(--text);margin-right:6px;white-space:nowrap;flex-shrink:0;}
+.x-input-teal{background:var(--teal);border:none;border-radius:7px;padding:5px 8px;font-size:13px;color:white;width:90px;outline:none;font-family:-apple-system,sans-serif;flex-shrink:0;}
+.x-input-teal::placeholder{color:rgba(255,255,255,0.7);}
+
+/* Picker */
+.picker-zone{
+  flex:1;position:relative;height:54px;overflow:hidden;
+  cursor:ns-resize;user-select:none;margin:0 10px;
+}
+.picker-highlight{
+  position:absolute;left:10px;right:10px;top:50%;
+  transform:translateY(-50%);height:20px;
+  background:#D8D8DD;border-radius:6px;
+  z-index:0;pointer-events:none;
+}
+.picker-list{
+  position:absolute;left:0;right:0;
+  top:calc(50% - 9px); /* align first item center to zone center */
+  transition:transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.picker-item{
+  height:18px;line-height:18px;
+  text-align:right;padding-right:4px;
+  font-size:11px;color:var(--subtext);
+  white-space:nowrap;position:relative;z-index:1;
+}
+.picker-item.active{font-size:12px;font-weight:600;color:var(--text);}
+
+/* Pink input */
+.pink-box{
+  background:var(--pink);border:none;border-radius:7px;
+  padding:5px 8px;font-size:13px;color:white;
+  width:90px;text-align:center;flex-shrink:0;
+  outline:none;font-family:-apple-system,sans-serif;
+}
+.pink-box::placeholder{color:rgba(255,255,255,0.6);}
+
+.canvas-wrap{flex:1;min-height:0;overflow:hidden;}
+canvas#dist-canvas{width:100%;height:100%;display:block;}
+.detail-bottom-bar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:8px 24px 14px;border-top:1px solid var(--divider);background:var(--bg);}
+.bar-back{background:none;border:none;color:var(--salmon);font-size:24px;cursor:pointer;line-height:1;}
+.bar-link{background:none;border:none;font-size:14px;color:var(--subtext);cursor:pointer;font-family:-apple-system,sans-serif;}
+
+/* HELP */
+.help-nav{display:flex;align-items:center;padding:12px 16px 9px;background:var(--bg);border-bottom:1px solid var(--divider);flex-shrink:0;}
+.help-back-btn{background:none;border:none;color:var(--salmon);font-size:15px;font-family:-apple-system,sans-serif;cursor:pointer;display:flex;align-items:center;padding:4px 0;min-width:60px;}
+.help-chevron{font-size:20px;margin-right:2px;}
+.help-title{flex:1;text-align:center;font-size:15px;font-weight:600;color:var(--text);margin-right:60px;}
+#help-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:40px;}
+.section-label{font-size:11px;font-weight:600;color:var(--subtext);text-transform:uppercase;letter-spacing:0.7px;padding:18px 20px 7px;}
+.upload-block{background:white;border-top:1px solid var(--divider);border-bottom:1px solid var(--divider);margin-bottom:8px;}
+.upload-zone{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;cursor:pointer;min-height:130px;}
+.upload-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-icon{font-size:30px;margin-bottom:8px;}
+.upload-label-txt{font-size:13px;color:var(--salmon);font-weight:500;margin-bottom:3px;}
+.upload-sub{font-size:11px;color:var(--subtext);}
+.notes-block{background:white;border-top:1px solid var(--divider);border-bottom:1px solid var(--divider);}
+.notes-textarea{width:100%;border:none;outline:none;font-family:-apple-system,sans-serif;font-size:13px;color:var(--text);padding:12px 18px;resize:none;min-height:90px;background:transparent;line-height:1.5;}
+.notes-textarea::placeholder{color:var(--subtext);}
+.remove-btn-full{width:100%;background:none;border:none;color:#FF3B30;font-size:13px;font-family:-apple-system,sans-serif;padding:12px;cursor:pointer;text-align:center;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="screen" id="main-screen">
+    <h1 class="app-title">Probability Distributions</h1>
+    <div id="scroll-area"><div id="dist-list"></div></div>
+    <div class="main-footer">
+      <a class="footer-link" href="#">Version 0.9.3 (What's new?)</a>
+      <p class="footer-info">Matthew Bognar, PhD<br>&#169;2025<br>Department of Statistics and Actuarial Science<br>University of Iowa</p>
+    </div>
+  </div>
+
+  <div class="screen" id="detail-screen">
+    <div class="dist-subtitle" id="dist-subtitle"></div>
+    <div class="params-wrap" id="params-wrap"></div>
+    <div class="canvas-wrap"><canvas id="dist-canvas"></canvas></div>
+    <div class="detail-bottom-bar">
+      <button class="bar-back" onclick="goBack()">&#9664;&#9664;</button>
+      <button class="bar-link" onclick="openHelp()">Help</button>
+      <button class="bar-link">Formulas</button>
+      <button class="bar-link">Moments</button>
+    </div>
+  </div>
+
+  <div class="screen" id="help-screen">
+    <div class="help-nav">
+      <button class="help-back-btn" onclick="closeHelp()"><span class="help-chevron">&#8249;</span> Back</button>
+      <div class="help-title" id="help-title"></div>
+    </div>
+    <div id="help-scroll">
+      <p class="section-label">Fotos / Apuntes</p>
+      <div id="photos-container"></div>
+      <div class="upload-block" id="add-photo-block">
+        <div class="upload-zone">
+          <input type="file" accept="image/*" id="file-input" onchange="handleFile(event)">
+          <div class="upload-icon">&#128444;</div>
+          <div class="upload-label-txt">Agregar foto</div>
+          <div class="upload-sub">Toc&#225; para elegir una imagen</div>
+        </div>
+      </div>
+      <p class="section-label">Notas</p>
+      <div class="notes-block">
+        <textarea class="notes-textarea" id="notes-textarea" placeholder="Apuntes sobre esta distribuci&#243;n..."></textarea>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+const DISTS = {
+  'Beta':                  {sub:'X~Beta(\u03b1,\u03b2)',    params:[['\u03b1','alpha',2],['\u03b2','beta',3]],         cont:true,  range:()=>[0,1]},
+  'Chi-Square':            {sub:'X~\u03c7\u00b2(\u03bd)',   params:[['\u03bd','nu',3]],                                cont:true,  range:p=>[0,p.nu*4+4]},
+  'Exponential':           {sub:'X~Exp(\u03bb)',             params:[['\u03bb','lam',1]],                              cont:true,  range:p=>[0,6/p.lam]},
+  'F':                     {sub:'X~F(d\u2081,d\u2082)',     params:[['d\u2081','d1',5],['d\u2082','d2',10]],           cont:true,  range:()=>[0,5]},
+  'Gamma':                 {sub:'X~\u0393(\u03b1,\u03b2)',  params:[['\u03b1','alpha',2],['\u03b2','beta',1]],         cont:true,  range:p=>[0,p.alpha*p.beta*5]},
+  'Log-Normal':            {sub:'X~LogN(\u03bc,\u03c3)',    params:[['\u03bc','mu',0],['\u03c3','sigma',1]],           cont:true,  range:()=>[0,8]},
+  'Normal':                {sub:'X~N(\u03bc,\u03c3)',       params:[['\u03bc','mu',0],['\u03c3','sigma',1]],           cont:true,  range:p=>[p.mu-4*p.sigma,p.mu+4*p.sigma]},
+  'Pareto':                {sub:'X~Pareto(\u03b1,x\u2098)', params:[['\u03b1','alpha',3],['x\u2098','xm',1]],         cont:true,  range:p=>[p.xm,p.xm*5]},
+  't':                     {sub:'X~t(\u03bd)',              params:[['\u03bd','nu',5]],                                cont:true,  range:()=>[-5,5]},
+  'Weibull':               {sub:'X~Weibull(k,\u03bb)',      params:[['k','k',2],['\u03bb','lam',1]],                  cont:true,  range:p=>[0,p.lam*3.5]},
+  'Binomial':              {sub:'X~Bin(n,p)',               params:[['n','n',10],['p','p',0.5]],                      cont:false, range:p=>[0,p.n]},
+  'Geometric (I)':         {sub:'X~Geom(p) [# trials]',    params:[['p','p',0.3]],                                   cont:false, range:p=>[1,Math.ceil(8/p.p)]},
+  'Geometric (II)':        {sub:'X~Geom(p) [# failures]',  params:[['p','p',0.3]],                                   cont:false, range:p=>[0,Math.ceil(7/p.p)]},
+  'Hypergeometric':        {sub:'X~HGeom(N,K,n)',           params:[['N','N',20],['K','K',7],['n','n',5]],            cont:false, range:p=>[Math.max(0,p.n+p.K-p.N),Math.min(p.n,p.K)]},
+  'Negative Binomial (I)': {sub:'X~NegBin(r,p) [trials]',  params:[['r','r',3],['p','p',0.4]],                      cont:false, range:p=>[p.r,p.r+Math.ceil(10*(1-p.p)/p.p)]},
+  'Negative Binomial (II)':{sub:'X~NegBin(r,p) [fail]',    params:[['r','r',3],['p','p',0.4]],                      cont:false, range:p=>[0,Math.ceil(10*(1-p.p)/p.p)]},
+  'Poisson':               {sub:'X~Poisson(\u03bb)',        params:[['\u03bb','lam',3]],                              cont:false, range:p=>[0,Math.ceil(p.lam+4*Math.sqrt(p.lam)+2)]},
+};
+
+
+let currentDist=null,currentP={};
+function getState(n){try{const raw=localStorage.getItem('dist_'+n);return raw?JSON.parse(raw):{images:[],notes:''};}catch(e){return {images:[],notes:''};}}
+function saveState(n,s){try{localStorage.setItem('dist_'+n,JSON.stringify(s));}catch(e){}}
+
+const listEl=document.getElementById('dist-list');
+Object.keys(DISTS).forEach(name=>{
+  const btn=document.createElement('button');btn.className='dist-item';
+  btn.textContent=name;btn.onclick=()=>openDetail(name);
+  listEl.appendChild(btn);
+});
+
+function openDetail(name){
+  currentDist=name;
+  const cfg=DISTS[name];
+  currentP={};
+  cfg.params.forEach(([,id,def])=>{currentP[id]=def;});
+  document.getElementById('dist-subtitle').textContent=cfg.sub;
+  buildParamUI(cfg);
+  document.getElementById('app').classList.add('detail-open');
+  requestAnimationFrame(()=>requestAnimationFrame(()=>drawChart(cfg)));
+}
+
+function buildParamUI(cfg){
+  const wrap=document.getElementById('params-wrap');
+  wrap.innerHTML='';
+
+  // Param inputs
+  cfg.params.forEach(([label,id,def])=>{
+    const row=document.createElement('div');row.className='param-row';
+    const lbl=document.createElement('span');lbl.className='param-label';lbl.textContent=label+' =';
+    const inp=document.createElement('input');inp.className='param-input';inp.type='number';inp.value=def;inp.step='any';
+    inp.oninput=()=>{currentP[id]=parseFloat(inp.value)||def;drawChart(cfg);};
+    row.appendChild(lbl);row.appendChild(inp);
+    wrap.appendChild(row);
+  });
+
+  const modes=cfg.cont?['P(X<x)','P(X>x)','2P(X>|x|)']:['P(X=x)','P(X\u2264x)'];
+  let selIdx=0;
+  const ITEM_H=18;
+
+  // Main row
+  const mainRow=document.createElement('div');mainRow.className='main-row';
+
+  const xLbl=document.createElement('span');xLbl.className='x-label';xLbl.textContent='x =';
+  mainRow.appendChild(xLbl);
+
+  const xInp=document.createElement('input');xInp.className='x-input-teal';xInp.type='number';xInp.step='any';
+  mainRow.appendChild(xInp);
+
+  // Picker zone
+  const pickerZone=document.createElement('div');pickerZone.className='picker-zone';
+
+  // Highlight pill (fixed center)
+  const highlight=document.createElement('div');highlight.className='picker-highlight';
+  pickerZone.appendChild(highlight);
+
+  // Scrolling list
+  const pickerList=document.createElement('div');pickerList.className='picker-list';
+  modes.forEach((label,i)=>{
+    const item=document.createElement('div');
+    item.className='picker-item'+(i===0?' active':'');
+    item.textContent=label+' =';
+    pickerList.appendChild(item);
+  });
+  pickerZone.appendChild(pickerList);
+
+  const itemEls=pickerList.querySelectorAll('.picker-item');
+
+  function setIdx(ni,animate){
+    ni=Math.max(0,Math.min(modes.length-1,ni));
+    selIdx=ni;
+    pickerList.style.transition=animate?'transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94)':'none';
+    pickerList.style.transform=`translateY(${-selIdx*ITEM_H}px)`;
+    itemEls.forEach((el,i)=>el.classList.toggle('active',i===selIdx));
+  }
+  setIdx(0,false);
+
+  let startY=0,startIdx=0,dragging=false;
+  pickerZone.addEventListener('touchstart',e=>{startY=e.touches[0].clientY;startIdx=selIdx;},{passive:true});
+  pickerZone.addEventListener('touchmove',e=>{
+    const d=Math.round((startY-e.touches[0].clientY)/ITEM_H);
+    setIdx(startIdx+d,true);
+  },{passive:true});
+  pickerZone.addEventListener('mousedown',e=>{dragging=true;startY=e.clientY;startIdx=selIdx;e.preventDefault();});
+  window.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    const d=Math.round((startY-e.clientY)/ITEM_H);
+    setIdx(startIdx+d,true);
+  });
+  window.addEventListener('mouseup',()=>{dragging=false;});
+  pickerZone.addEventListener('wheel',e=>{
+    e.preventDefault();
+    setIdx(selIdx+(e.deltaY>0?1:-1),true);
+  },{passive:false});
+
+  mainRow.appendChild(pickerZone);
+
+  const pink=document.createElement('input');pink.className='pink-box';pink.type='number';pink.step='any';
+  mainRow.appendChild(pink);
+
+  wrap.appendChild(mainRow);
+}
+
+function drawChart(cfg){
+  const canvas=document.getElementById('dist-canvas');if(!canvas)return;
+  const rect=canvas.getBoundingClientRect();
+  if(!rect.width||!rect.height)return;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
+  const ctx=canvas.getContext('2d');ctx.scale(dpr,dpr);
+  const W=rect.width,H=rect.height;
+  ctx.fillStyle='#EBEBF0';ctx.fillRect(0,0,W,H);
+  const pad={l:46,r:14,t:16,b:40};
+  const pw=W-pad.l-pad.r,ph=H-pad.t-pad.b;
+  const range=cfg.range(currentP);
+  let xMin=range[0],xMax=range[1];
+  if(!isFinite(xMin)||!isFinite(xMax)||xMin>=xMax){xMin=-5;xMax=5;}
+  function cx(x){return pad.l+(x-xMin)/(xMax-xMin)*pw;}
+  function cy(y,ym){return pad.t+ph*(1-y/ym);}
+  const fs=Math.max(10,Math.round(W*0.028));
+  ctx.font=`${fs}px -apple-system,sans-serif`;
+  const yMax=1,ySteps=4;
+  for(let i=0;i<=ySteps;i++){
+    const v=yMax*i/ySteps,y=cy(v,yMax);
+    ctx.strokeStyle='#ddd';ctx.lineWidth=0.7;
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+pw,y);ctx.stroke();
+    ctx.fillStyle='#888';ctx.textAlign='right';
+    ctx.fillText(i===0?'0':v.toFixed(1),pad.l-5,y+4);
+  }
+  const xSteps=6;
+  for(let i=0;i<=xSteps;i++){
+    const v=xMin+(xMax-xMin)*i/xSteps,x=cx(v);
+    ctx.strokeStyle='#ddd';ctx.lineWidth=0.7;
+    ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+ph);ctx.stroke();
+    ctx.fillStyle='#888';ctx.textAlign='center';
+    ctx.fillText(Number.isInteger(v)?v.toFixed(0):v.toFixed(1),x,pad.t+ph+16);
+  }
+  ctx.save();ctx.translate(12,pad.t+ph/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle='#666';ctx.textAlign='center';ctx.fillText(cfg.cont?'f(x)':'P(X=k)',0,0);ctx.restore();
+  ctx.fillStyle='#666';ctx.textAlign='center';ctx.fillText('x',pad.l+pw/2,H-6);
+  ctx.strokeStyle='#444';ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,pad.t+ph);ctx.lineTo(pad.l+pw,pad.t+ph);ctx.stroke();
+}
+
+function goBack(){document.getElementById('app').classList.remove('detail-open');currentDist=null;}
+
+function openHelp(){
+  if(!currentDist)return;
+  const s=getState(currentDist);
+  document.getElementById('help-title').textContent=currentDist;
+  document.getElementById('notes-textarea').value=s.notes;
+  document.getElementById('file-input').value='';
+  renderPhotos();
+  document.getElementById('app').classList.add('help-open');
+  document.getElementById('help-scroll').scrollTop=0;
+}
+
+function closeHelp(){
+  if(currentDist){const s=getState(currentDist);s.notes=document.getElementById('notes-textarea').value;saveState(currentDist,s);}
+  document.getElementById('app').classList.remove('help-open');
+}
+
+function renderPhotos(){
+  const s=getState(currentDist);
+  const container=document.getElementById('photos-container');
+  container.innerHTML='';
+  s.images.forEach((url,i)=>{
+    const block=document.createElement('div');block.className='upload-block';block.style.marginBottom='8px';
+    const img=document.createElement('img');img.style.cssText='width:100%;height:auto;object-fit:contain;display:block;background:#fafafa;';img.src=url;
+    img.onclick=()=>openLightbox(url);
+    const row=document.createElement('div');row.style.borderTop='1px solid var(--divider)';
+    const btn=document.createElement('button');btn.className='remove-btn-full';btn.textContent='Eliminar foto '+(i+1);btn.onclick=()=>removePhoto(i);
+    row.appendChild(btn);block.appendChild(img);block.appendChild(row);container.appendChild(block);
+  });
+  document.getElementById('add-photo-block').style.display=s.images.length>=20?'none':'block';
+}
+
+function handleFile(e){
+  const file=e.target.files[0];if(!file||!currentDist)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const MAX=1200;
+      let w=img.width,h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      if(h>MAX){w=Math.round(w*MAX/h);h=MAX;}
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const compressed=canvas.toDataURL('image/jpeg',0.75);
+      const s=getState(currentDist);
+      s.images.push(compressed);
+      try{saveState(currentDist,s);}
+      catch(err){alert('Sin espacio. Eliminá alguna foto primero.');s.images.pop();return;}
+      document.getElementById('file-input').value='';
+      renderPhotos();
+    };
+    img.src=ev.target.result;
+  };
+  r.readAsDataURL(file);
+}
+
+function removePhoto(i){const s=getState(currentDist);s.images.splice(i,1);saveState(currentDist,s);renderPhotos();}
+
+function openLightbox(src){
+  const lb=document.createElement('div');
+  lb.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:999;display:flex;align-items:center;justify-content:center;';
+  const img=document.createElement('img');
+  img.style.cssText='max-width:100%;max-height:100%;object-fit:contain;';
+  img.src=src;
+  lb.appendChild(img);
+  lb.onclick=()=>document.body.removeChild(lb);
+  document.body.appendChild(lb);
+}
+
+window.addEventListener('resize',()=>{if(currentDist)drawChart(DISTS[currentDist]);});
+</script>
+</body>
+</html>
